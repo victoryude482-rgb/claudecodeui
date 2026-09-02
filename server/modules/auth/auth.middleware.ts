@@ -4,7 +4,6 @@ import jwt from 'jsonwebtoken';
 import { IS_PLATFORM } from '@/shared/utils.js';
 import { userDb, appConfigDb } from '../database/index.js';
 
-// Use an explicitly configured secret in hosted environments. The DB fallback is retained for local OSS installs.
 const JWT_SECRET = process.env.JWT_SECRET || appConfigDb.getOrCreateJwtSecret();
 
 const validateApiKey = (req, res, next) => {
@@ -26,7 +25,6 @@ const authenticateToken = async (req, res, next) => {
       return res.status(500).json({ error: 'Platform mode: Failed to fetch user' });
     }
   }
-
   const authHeader = req.headers['authorization'];
   let token = authHeader && authHeader.split(' ')[1];
   if (!token && req.query.token) token = req.query.token;
@@ -34,7 +32,6 @@ const authenticateToken = async (req, res, next) => {
     res.setHeader('X-Auth-Error', 'invalid-token');
     return res.status(401).json({ error: 'Access denied. No token provided.', code: 'AUTH_TOKEN_INVALID' });
   }
-
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     const user = userDb.getUserById(decoded.userId);
@@ -60,7 +57,6 @@ const authenticateToken = async (req, res, next) => {
   }
 };
 
-// Keep the normal session reasonably long; auto-refresh extends active sessions.
 const generateToken = (user) => jwt.sign(
   { userId: user.id, username: user.username },
   JWT_SECRET,
