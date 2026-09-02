@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: cloudcode-ui-all-agents
+    runtime: node
+    plan: free
+    region: frankfurt
+    branch: main
+    buildCommand: npm install && npm install -g @anthropic-ai/claude-code @openai/codex @google/gemini-cli opencode-ai && (command -v curl >/dev/null 2>&1 && curl https://cursor.com/install -fsS | bash || true) && npm run build
+    startCommand: export PATH="$HOME/.local/bin:$PATH" && npm run server
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: cloudcode-ui-auth-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+databases:
+  - name: cloudcode-ui-auth-db
+    plan: free
+    region: frankfurt
+    postgresMajorVersion: "18"
