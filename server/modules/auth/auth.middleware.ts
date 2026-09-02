@@ -4,8 +4,7 @@ import jwt from 'jsonwebtoken';
 import { IS_PLATFORM } from '@/shared/utils.js';
 import { userDb, appConfigDb } from '../database/index.js';
 
-// A fixed deployment secret prevents every Render restart from invalidating sessions.
-// Set JWT_SECRET in Render for the strongest guarantee; the DB fallback remains for local OSS use.
+// Use an explicitly configured secret in hosted environments. The DB fallback is retained for local OSS installs.
 const JWT_SECRET = process.env.JWT_SECRET || appConfigDb.getOrCreateJwtSecret();
 
 const validateApiKey = (req, res, next) => {
@@ -31,7 +30,6 @@ const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
   let token = authHeader && authHeader.split(' ')[1];
   if (!token && req.query.token) token = req.query.token;
-
   if (!token) {
     res.setHeader('X-Auth-Error', 'invalid-token');
     return res.status(401).json({ error: 'Access denied. No token provided.', code: 'AUTH_TOKEN_INVALID' });
@@ -44,7 +42,6 @@ const authenticateToken = async (req, res, next) => {
       res.setHeader('X-Auth-Error', 'invalid-token');
       return res.status(401).json({ error: 'Invalid token. User not found.', code: 'AUTH_TOKEN_INVALID' });
     }
-
     if (decoded.exp && decoded.iat) {
       const now = Math.floor(Date.now() / 1000);
       const halfLife = (decoded.exp - decoded.iat) / 2;
@@ -63,6 +60,7 @@ const authenticateToken = async (req, res, next) => {
   }
 };
 
+// Keep the normal session reasonably long; auto-refresh extends active sessions.
 const generateToken = (user) => jwt.sign(
   { userId: user.id, username: user.username },
   JWT_SECRET,
