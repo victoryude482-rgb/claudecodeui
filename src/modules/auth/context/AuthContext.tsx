@@ -211,7 +211,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const statusResponse = await api.auth.status();
       const statusPayload = await parseJsonSafely<AuthStatusPayload>(statusResponse);
 
-      if (statusPayload?.needsSetup) {
+      // The hosted SQLite database is intentionally treated as disposable. A
+      // Render Free restart can remove users while the browser still has a
+      // valid signed JWT. In that situation the token is the source of truth
+      // for the existing session; do not incorrectly send the user back to the
+      // first-run registration screen.
+      if (statusPayload?.needsSetup && !token) {
         setNeedsSetup(true);
         return;
       }
