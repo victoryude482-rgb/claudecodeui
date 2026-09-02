@@ -5,29 +5,24 @@ import type { createAuthService } from './auth.service.js';
 
 type AuthenticatedRequest = express.Request & { user?: unknown };
 
-/**
- * Creates the Auth transport adapter. Handlers only parse request data and
- * delegate authentication behavior to the injected application service.
- */
 export function createAuthRouter(
   service: ReturnType<typeof createAuthService>,
   authenticateToken: RequestHandler,
 ): express.Router {
   const router = express.Router();
 
-  router.get('/status', authenticateToken, (req, res, next) => {
+  router.get('/status', (_req, res, next) => {
     try {
-      const status = service.getStatus();
-      const user = (req as AuthenticatedRequest).user;
-      res.json({ ...status, needsSetup: false, isAuthenticated: Boolean(user), user });
+      res.json(service.getStatus());
     } catch (error) {
       next(error);
     }
   });
 
-  router.get('/status/public', (_req, res, next) => {
+  router.get('/status/session', authenticateToken, (req, res, next) => {
     try {
-      res.json(service.getStatus());
+      const user = (req as AuthenticatedRequest).user;
+      res.json({ needsSetup: false, isAuthenticated: Boolean(user), user });
     } catch (error) {
       next(error);
     }
